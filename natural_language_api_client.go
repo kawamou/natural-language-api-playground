@@ -29,6 +29,7 @@ type AnalyzeSentimentOutput struct {
 type AnalyzeEntityOutput struct {
 	Entities Entities
 	Language string // e.g. "ja" "en"
+	Sentiment
 }
 
 type Sentiment struct {
@@ -44,6 +45,9 @@ type Entity struct {
 	Name     string
 	Type     string
 	Metadata map[string]string
+	// Sentiment は感情を表します
+	// EntitySentimentのAPIを叩いたときにのみ反映される値
+	Sentiment Sentiment
 	// Mentions等は一旦省略
 }
 
@@ -113,6 +117,13 @@ func NewAnalyzeEntityOutput(analyzeEntityResp *languagepb.AnalyzeEntitiesRespons
 	}
 }
 
+func NewAnalyzeEntitySentimentOutput(analyzeEntityResp *languagepb.AnalyzeEntitySentimentResponse) *AnalyzeEntityOutput {
+	return &AnalyzeEntityOutput{
+		Entities: NewEntitiesFromEntitiesPb(analyzeEntityResp.Entities),
+		Language: analyzeEntityResp.Language,
+	}
+}
+
 func NewSentimentFromSentimentPb(sentimentPb *languagepb.Sentiment) Sentiment {
 	return Sentiment{
 		Magnitude: sentimentPb.Magnitude,
@@ -132,13 +143,32 @@ func NewSentencesFromSentencesPb(sentencesPb []*languagepb.Sentence) (sentences 
 
 func NewEntitiesFromEntitiesPb(entitiesPb []*languagepb.Entity) (entities Entities) {
 	for _, entityPb := range entitiesPb {
+		sentiment := entityPb.GetSentiment()
 		entity := &Entity{
 			Name: entityPb.Name,
 			Type: entityPb.Type.String(),
+			Sentiment: Sentiment{
+				Magnitude: magnitude(sentiment),
+				Score:     score(sentiment),
+			},
 		}
 		entities = append(entities, entity)
 	}
 	return
+}
+
+func magnitude(sentiment *languagepb.Sentiment) float32 {
+	if sentiment == nil {
+		return 0
+	}
+	return sentiment.Magnitude
+}
+
+func score(sentiment *languagepb.Sentiment) float32 {
+	if sentiment == nil {
+		return 0
+	}
+	return sentiment.Score
 }
 
 func NewTokensFromTokensPb(tokensPb []*languagepb.Token) (tokens Tokens) {
@@ -165,7 +195,7 @@ func NewTokensFromTokensPb(tokensPb []*languagepb.Token) (tokens Tokens) {
 func (c *Client) AnalyzeSyntax(ctx context.Context, targetContent string) (*AnalyzeSyntaxOutput, error) {
 	req := &languagepb.AnalyzeSyntaxRequest{
 		Document: &languagepb.Document{
-			Type: 1, // e.g. Plain text:1, HTML:2
+			Type: languagepb.Document_PLAIN_TEXT,
 			Source: &languagepb.Document_Content{
 				Content: targetContent,
 			},
@@ -183,7 +213,7 @@ func (c *Client) AnalyzeSyntax(ctx context.Context, targetContent string) (*Anal
 func (c *Client) AnalyzeSentiment(ctx context.Context, targetContent string) (*AnalyzeSentimentOutput, error) {
 	req := &languagepb.AnalyzeSentimentRequest{
 		Document: &languagepb.Document{
-			Type: 1, // e.g. Plain text:1, HTML:2
+			Type: languagepb.Document_PLAIN_TEXT,
 			Source: &languagepb.Document_Content{
 				Content: targetContent,
 			},
@@ -201,7 +231,7 @@ func (c *Client) AnalyzeSentiment(ctx context.Context, targetContent string) (*A
 func (c *Client) AnalyzeEntity(ctx context.Context, targetContent string) (*AnalyzeEntityOutput, error) {
 	req := &languagepb.AnalyzeEntitiesRequest{
 		Document: &languagepb.Document{
-			Type: 1, // e.g. Plain text:1, HTML:2
+			Type: languagepb.Document_PLAIN_TEXT,
 			Source: &languagepb.Document_Content{
 				Content: targetContent,
 			},
@@ -213,6 +243,24 @@ func (c *Client) AnalyzeEntity(ctx context.Context, targetContent string) (*Anal
 		return nil, err
 	}
 	output := NewAnalyzeEntityOutput(resp)
+	return output, nil
+}
+
+func (c *Client) AnalyzeEntitySentiment(ctx context.Context, targetContent string) (*AnalyzeEntityOutput, error) {
+	req := &languagepb.AnalyzeEntitySentimentRequest{
+		Document: &languagepb.Document{
+			Type: languagepb.Document_PLAIN_TEXT,
+			Source: &languagepb.Document_Content{
+				Content: targetContent,
+			},
+		},
+		EncodingType: languagepb.EncodingType_UTF8,
+	}
+	resp, err := c.c.AnalyzeEntitySentiment(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	output := NewAnalyzeEntitySentimentOutput(resp)
 	return output, nil
 }
 

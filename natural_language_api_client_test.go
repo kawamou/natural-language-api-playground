@@ -49,3 +49,20 @@ func TestClient_AnalyzeEntity(t *testing.T) {
 		log.Printf("%#v", entity.Metadata)
 	}
 }
+
+func TestClient_AnalyzeEntitySentiment(t *testing.T) {
+	ctx := context.Background()
+	client := NewClient(ctx)
+	output, err := client.AnalyzeEntitySentiment(ctx, "zoo, park, disney")
+	if err != nil {
+		t.Fatal(err)
+	}
+	log.Printf("%#v", output.Language)
+	for _, entity := range output.Entities {
+		log.Printf("%#v", entity.Name)
+		log.Printf("%#v", entity.Type)
+		log.Printf("%#v", entity.Metadata)
+		log.Printf("%#v", entity.Sentiment.Magnitude)
+		log.Printf("%#v", entity.Sentiment.Score)
+	}
+}

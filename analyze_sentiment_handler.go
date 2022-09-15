@@ -17,7 +17,7 @@ type AnalyzeSentimentHandlerResponse struct {
 }
 
 // NewAnalyzeSentimentHandler ...
-func NeAnalyzeSentimentHandler(c *Client) *AnalyzeSentimentHandler {
+func NewAnalyzeSentimentHandler(c *Client) *AnalyzeSentimentHandler {
 	return &AnalyzeSentimentHandler{
 		c: c,
 	}

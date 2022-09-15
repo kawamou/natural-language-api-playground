@@ -20,6 +20,13 @@
 {"entities":[{"Name":"こんにち","Type":"OTHER","Metadata":null},{"Name":"名前","Type":"OTHER","Metadata":null},{"Name":"太郎","Type":"PERSON","Metadata":null},{"Name":"バッキンガム","Type":"OTHER","Metadata":null},{"Name":"宮殿","Type":"PERSON","Metadata":null},{"Name":"Macbook","Type":"CONSUMER_GOOD","Metadata":null},{"Name":"カメラ","Type":"CONSUMER_GOOD","Metadata":null},{"Name":"一","Type":"NUMBER","Metadata":null}]}
 ```
 
+### 単語感情分析
+日本語はほとんど対応していなさそう？🤔
+```sh
+❯ curl "localhost:8080/analyze-entity-sentiment/zoo,park,disney,star"
+{"entities":[{"Name":"zoo","Type":"OTHER","Metadata":null,"Sentiment":{"Magnitude":0.3,"Score":0.3}},{"Name":"park","Type":"LOCATION","Metadata":null,"Sentiment":{"Magnitude":0.4,"Score":0.4}},{"Name":"star","Type":"PERSON","Metadata":null,"Sentiment":{"Magnitude":0.3,"Score":0.3}},{"Name":"disney","Type":"ORGANIZATION","Metadata":null,"Sentiment":{"Magnitude":0.5,"Score":0.5}}]}
+```
+
 ### 柔和化
 ```sh
 ❯ curl "localhost:8080/nyuwaize/こんにちは、私の名前は太郎です。最高の一日。"

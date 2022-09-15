@@ -10,7 +10,6 @@
 ```sh
 ❯ curl "localhost:8080/analyze-sentiment/こんにちは、私の名前は太郎です。最高の一日。"
 {"positive_nagative":"positive"}
-~/private/natural-language-api-playground main* ⇣
 ❯ curl "localhost:8080/analyze-sentiment/こんにちは、私の名前は太郎です。辛い一日。"
 {"positive_nagative":"negative"}
 ```

@@ -14,6 +14,25 @@ type AnalyzeSyntaxOutput struct {
 	Language          string // e.g. "ja" "en"
 }
 
+type AnalyzeSentimentOutput struct {
+	// OriginalSentences は入力文章が文の区切りとして戻ってきます
+	// ex. こんにちは。私の名前は太郎です。楽しい、嬉しい！やったあ
+	// &main.Sentence{Text:"こんにちは。"}
+	// &main.Sentence{Text:"私の名前は太郎です。"}
+	// &main.Sentence{Text:"楽しい、嬉しい！"}
+	// &main.Sentence{Text:"やったあ"}
+	OriginalSentences Sentences
+	Sentiment         Sentiment
+	Language          string // e.g. "ja" "en"
+}
+
+type Sentiment struct {
+	Magnitude float32 // [0, +inf)
+	// Score is -1.0 (negative sentiment) and 1.0
+	// Score >= 0 -> positive
+	Score float32
+}
+
 type Tokens []*Token
 
 type Token struct {
@@ -65,6 +84,21 @@ func NewAnalyzeSyntaxOutput(analyzeSyntaxResp *languagepb.AnalyzeSyntaxResponse)
 	}
 }
 
+func NewAnalyzeSentimentOutput(analyzeSentimentResp *languagepb.AnalyzeSentimentResponse) *AnalyzeSentimentOutput {
+	return &AnalyzeSentimentOutput{
+		OriginalSentences: NewSentencesFromSentencesPb(analyzeSentimentResp.Sentences),
+		Sentiment:         NewSentimentFromSentimentPb(analyzeSentimentResp.DocumentSentiment),
+		Language:          analyzeSentimentResp.Language,
+	}
+}
+
+func NewSentimentFromSentimentPb(sentimentPb *languagepb.Sentiment) Sentiment {
+	return Sentiment{
+		Magnitude: sentimentPb.Magnitude,
+		Score:     sentimentPb.Score,
+	}
+}
+
 func NewSentencesFromSentencesPb(sentencesPb []*languagepb.Sentence) (sentences Sentences) {
 	for _, sentencePb := range sentencesPb {
 		sentence := &Sentence{
@@ -111,6 +145,24 @@ func (c *Client) AnalyzeSyntax(ctx context.Context, targetContent string) (*Anal
 		return nil, err
 	}
 	output := NewAnalyzeSyntaxOutput(resp)
+	return output, nil
+}
+
+func (c *Client) AnalyzeSentiment(ctx context.Context, targetContent string) (*AnalyzeSentimentOutput, error) {
+	req := &languagepb.AnalyzeSentimentRequest{
+		Document: &languagepb.Document{
+			Type: 1, // e.g. Plain text:1, HTML:2
+			Source: &languagepb.Document_Content{
+				Content: targetContent,
+			},
+		},
+		EncodingType: languagepb.EncodingType_UTF8,
+	}
+	resp, err := c.c.AnalyzeSentiment(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	output := NewAnalyzeSentimentOutput(resp)
 	return output, nil
 }
 

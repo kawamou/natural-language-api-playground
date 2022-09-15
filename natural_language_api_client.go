@@ -26,11 +26,25 @@ type AnalyzeSentimentOutput struct {
 	Language          string // e.g. "ja" "en"
 }
 
+type AnalyzeEntityOutput struct {
+	Entities Entities
+	Language string // e.g. "ja" "en"
+}
+
 type Sentiment struct {
 	Magnitude float32 // [0, +inf)
 	// Score is -1.0 (negative sentiment) and 1.0
 	// Score >= 0 -> positive
 	Score float32
+}
+
+type Entities []*Entity
+
+type Entity struct {
+	Name     string
+	Type     string
+	Metadata map[string]string
+	// Mentions等は一旦省略
 }
 
 type Tokens []*Token
@@ -92,6 +106,13 @@ func NewAnalyzeSentimentOutput(analyzeSentimentResp *languagepb.AnalyzeSentiment
 	}
 }
 
+func NewAnalyzeEntityOutput(analyzeEntityResp *languagepb.AnalyzeEntitiesResponse) *AnalyzeEntityOutput {
+	return &AnalyzeEntityOutput{
+		Entities: NewEntitiesFromEntitiesPb(analyzeEntityResp.Entities),
+		Language: analyzeEntityResp.Language,
+	}
+}
+
 func NewSentimentFromSentimentPb(sentimentPb *languagepb.Sentiment) Sentiment {
 	return Sentiment{
 		Magnitude: sentimentPb.Magnitude,
@@ -105,6 +126,17 @@ func NewSentencesFromSentencesPb(sentencesPb []*languagepb.Sentence) (sentences 
 			Text: sentencePb.Text.Content,
 		}
 		sentences = append(sentences, sentence)
+	}
+	return
+}
+
+func NewEntitiesFromEntitiesPb(entitiesPb []*languagepb.Entity) (entities Entities) {
+	for _, entityPb := range entitiesPb {
+		entity := &Entity{
+			Name: entityPb.Name,
+			Type: entityPb.Type.String(),
+		}
+		entities = append(entities, entity)
 	}
 	return
 }
@@ -163,6 +195,24 @@ func (c *Client) AnalyzeSentiment(ctx context.Context, targetContent string) (*A
 		return nil, err
 	}
 	output := NewAnalyzeSentimentOutput(resp)
+	return output, nil
+}
+
+func (c *Client) AnalyzeEntity(ctx context.Context, targetContent string) (*AnalyzeEntityOutput, error) {
+	req := &languagepb.AnalyzeEntitiesRequest{
+		Document: &languagepb.Document{
+			Type: 1, // e.g. Plain text:1, HTML:2
+			Source: &languagepb.Document_Content{
+				Content: targetContent,
+			},
+		},
+		EncodingType: languagepb.EncodingType_UTF8,
+	}
+	resp, err := c.c.AnalyzeEntities(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	output := NewAnalyzeEntityOutput(resp)
 	return output, nil
 }
 

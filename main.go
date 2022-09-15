@@ -28,10 +28,12 @@ func (r *Router) Run(port string) error {
 	c := NewClient(ctx)
 	pingHandler := NewPingHandler()
 	nyuwaizeHandler := NewNyuwaizeHandler(c)
+	analyzeSentimentHandler := NeAnalyzeSentimentHandler(c)
 	api := r.Engine.Group("")
 	api.GET("/ping", pingHandler.Handle)
 	// api.POST("/analyze-syntax/:text")
 	api.GET("/nyuwaize/:text", nyuwaizeHandler.Handle)
+	api.GET("analyze-sentiment/:text", analyzeSentimentHandler.Handle)
 	return r.Engine.Run(port)
 }
 
